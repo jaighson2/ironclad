@@ -12,6 +12,9 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+# Create symbolic links for mitmproxy executables to be in a standard PATH location
+RUN ln -s /usr/local/bin/mitmdump /usr/bin/mitmdump && \
+    ln -s /usr/local/bin/mitmproxy /usr/bin/mitmproxy
 
 # Copy test script
 COPY test_vulnerability.py .
