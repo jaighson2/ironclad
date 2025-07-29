@@ -6,6 +6,9 @@ ENV ANDROID_SDK_ROOT="/opt/android-sdk"
 # Add SDK tools to PATH early
 ENV PATH="$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/emulator"
 
+# ABSOLUTE FIX: Set DEBIAN_FRONTEND to noninteractive to prevent all interactive prompts during apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install core system dependencies, Java, Python (full version), wget, unzip, curl
 RUN apt-get update && apt-get install -y \
     openjdk-17-jre \
