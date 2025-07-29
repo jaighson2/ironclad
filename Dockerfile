@@ -1,5 +1,5 @@
 # Start from the thyrlian/android-sdk base image
-FROM thyrlian/android-sdk:latest
+FROM ubuntu:22.04
 
 # Ensure python3 and pip are installed (thyrlian usually has them, but good to ensure)
 RUN apt-get update && apt-get install -y python3 python3-pip curl && rm -rf /var/lib/apt/lists/*
@@ -20,8 +20,7 @@ RUN ln -s $(find / -name mitmproxy -type f -executable 2>/dev/null | head -n 1) 
 # Copy test script
 COPY test_vulnerability.py .
 
-# --- Android SDK Configuration for git commit -m "Final Fix: Dockerfile - Robust mitmproxy pathing"
- installation ---
+# --- Android SDK Configuration for robust installation ---
 # thyrlian/android-sdk usually has ANDROID_SDK_ROOT set to /opt/android-sdk and sdkmanager in PATH.
 
 # Explicitly accept Android SDK licenses (most robust method for thyrlian base)
@@ -30,8 +29,7 @@ COPY test_vulnerability.py .
 RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "8933cc44-9fd0-4702-95cc-ac721bdc4b60" > ${ANDROID_SDK_ROOT}/licenses/android-sdk-license \
     && echo "84831b14-a957-49d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-preview-license \
-    && echo "84831b14-a957-49git push
-    d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-arm-dbt-license \
+    && echo "84831b14-a957-49d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-arm-dbt-license \
     && echo "50466750-df18-4900-8413-f42528d2279b" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-ext-license \
     && echo "d975f782-9322-416d-b3b4-f06b72a08990" >> ${ANDROID_SDK_ROOT}/licenses/google-gdk-license \
     && echo "e61e0e85-d8aa-4623-a55d-318e47451310" >> ${ANDROID_SDK_ROOT}/licenses/mips-android-sysimage-license \
