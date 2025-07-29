@@ -15,8 +15,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 # Create symbolic links for mitmproxy executables to be in a standard PATH location
 # This ensures that 'mitmproxy' and 'mitmdump' can be found and executed directly.
-RUN ln -s $(find / -name mitmproxy -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmproxy && \
-    ln -s $(find / -name mitmdump -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmdump
+# Using a more robust method to find pip's site-packages and then link the executables.
+RUN PYTHON_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])") && \
+    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmproxy /usr/bin/mitmproxy && \
+    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmdump /usr/bin/mitmdump
 
 # Copy test script
 COPY test_vulnerability.py .
