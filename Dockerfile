@@ -11,7 +11,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+# Removed --break-system-packages for broader pip compatibility
+RUN pip install --no-cache-dir -r requirements.txt
 # Create symbolic links for mitmproxy executables to be in a standard PATH location
 # This ensures that 'mitmproxy' and 'mitmdump' can be found and executed directly.
 RUN ln -s $(find / -name mitmproxy -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmproxy && \
