@@ -1,5 +1,5 @@
 # Start from the thyrlian/android-sdk base image
-FROM ubuntu:22.04
+FROM thyrlian/android-sdk:latest
 
 # Ensure python3 and pip are installed (thyrlian usually has them, but good to ensure)
 RUN apt-get update && apt-get install -y python3 python3-pip curl && rm -rf /var/lib/apt/lists/*
