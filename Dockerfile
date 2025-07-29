@@ -13,10 +13,10 @@ COPY requirements.txt .
 # Install Python dependencies
 # Removed --break-system-packages for broader pip compatibility
 RUN pip install --no-cache-dir -r requirements.txt
-# ABSOLUTE FIX: Explicitly link mitmproxy executables from pip's known install location
-# This bypasses any issues with 'find' or dynamic paths.
-RUN ln -s /usr/local/lib/python3.10/dist-packages/mitmproxy/mitmproxy /usr/bin/mitmproxy && \
-    ln -s /usr/local/lib/python3.10/dist-packages/mitmproxy/mitmdump /usr/bin/mitmdump
+# Create symbolic links for mitmproxy executables to be in a standard PATH location
+# This ensures that 'mitmproxy' and 'mitmdump' can be found and executed directly.
+RUN ln -s $(find / -name mitmproxy -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmproxy && \
+    ln -s $(find / -name mitmdump -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmdump
 
 # Copy test script
 COPY test_vulnerability.py .
