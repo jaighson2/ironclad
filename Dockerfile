@@ -13,13 +13,15 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
 # Create symbolic links for mitmproxy executables to be in a standard PATH location
-RUN ln -s /usr/local/bin/mitmdump /usr/bin/mitmdump && \
-    ln -s /usr/local/bin/mitmproxy /usr/bin/mitmproxy
+# This ensures that 'mitmproxy' and 'mitmdump' can be found and executed directly.
+RUN ln -s $(find / -name mitmproxy -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmproxy && \
+    ln -s $(find / -name mitmdump -type f -executable 2>/dev/null | head -n 1) /usr/bin/mitmdump
 
 # Copy test script
 COPY test_vulnerability.py .
 
-# --- Android SDK Configuration for robust installation ---
+# --- Android SDK Configuration for git commit -m "Final Fix: Dockerfile - Robust mitmproxy pathing"
+ installation ---
 # thyrlian/android-sdk usually has ANDROID_SDK_ROOT set to /opt/android-sdk and sdkmanager in PATH.
 
 # Explicitly accept Android SDK licenses (most robust method for thyrlian base)
@@ -28,7 +30,8 @@ COPY test_vulnerability.py .
 RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "8933cc44-9fd0-4702-95cc-ac721bdc4b60" > ${ANDROID_SDK_ROOT}/licenses/android-sdk-license \
     && echo "84831b14-a957-49d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-preview-license \
-    && echo "84831b14-a957-49d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-arm-dbt-license \
+    && echo "84831b14-a957-49git push
+    d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-arm-dbt-license \
     && echo "50466750-df18-4900-8413-f42528d2279b" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-ext-license \
     && echo "d975f782-9322-416d-b3b4-f06b72a08990" >> ${ANDROID_SDK_ROOT}/licenses/google-gdk-license \
     && echo "e61e0e85-d8aa-4623-a55d-318e47451310" >> ${ANDROID_SDK_ROOT}/licenses/mips-android-sysimage-license \
