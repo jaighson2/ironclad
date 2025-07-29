@@ -1,34 +1,43 @@
-# Start from the thyrlian/android-sdk base image
-FROM thyrlian/android-sdk:latest
+# Use a minimal Ubuntu base image for full control
+FROM ubuntu:22.04
 
-# Ensure python3 and pip are installed (thyrlian usually has them, but good to ensure)
-RUN apt-get update && apt-get install -y python3 python3-pip curl && rm -rf /var/lib/apt/lists/*
+# Set environment variables for Android SDK
+ENV ANDROID_SDK_ROOT="/opt/android-sdk"
+# Add SDK tools to PATH early
+ENV PATH="$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/emulator"
 
-# Set WORKDIR for our application files
-WORKDIR /app
+# Install core system dependencies, Java, Python (full version), wget, unzip, curl
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre \
+    wget \
+    unzip \
+    curl \
+    sudo \
+    python3 \
+    python3-pip \
+    python3-full \
+    git \
+    iproute2 \
+    net-tools \
+    libstdc++6 \
+    libncurses5 \
+    libusb-1.0-0 \
+    qemu-kvm \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy application requirements
-COPY requirements.txt .
+# Install Python dependencies (including mitmproxy)
+# Use --break-system-packages for PEP 668 compliance
+RUN pip install --no-cache-dir --break-system-packages mitmproxy pytest requests
 
-# Install Python dependencies
-# Removed --break-system-packages for broader pip compatibility
-RUN pip install --no-cache-dir -r requirements.txt
-# Create symbolic links for mitmproxy executables to be in a standard PATH location
-# This ensures that 'mitmproxy' and 'mitmdump' can be found and executed directly.
-# Using a more robust method to find pip's site-packages and then link the executables.
-RUN PYTHON_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])") && \
-    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmproxy /usr/bin/mitmproxy && \
-    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmdump /usr/bin/mitmdump
+# Download and install Android SDK Command-line Tools
+ARG SDK_TOOLS_VERSION=11076708
+RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-${SDK_TOOLS_VERSION}_latest.zip -O /tmp/commandlinetools-linux.zip \
+    && mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools/latest \
+    && unzip /tmp/commandlinetools-linux.zip -d /tmp/android_extract \
+    && mv /tmp/android_extract/cmdline-tools/* ${ANDROID_SDK_ROOT}/cmdline-tools/latest/ \
+    && rm -rf /tmp/android_extract /tmp/commandlinetools-linux.zip
 
-# Copy test script
-COPY test_vulnerability.py .
-
-# --- Android SDK Configuration for robust installation ---
-# thyrlian/android-sdk usually has ANDROID_SDK_ROOT set to /opt/android-sdk and sdkmanager in PATH.
-
-# Explicitly accept Android SDK licenses (most robust method for thyrlian base)
-# These UUIDs cover common Android SDK licenses.
-# Assumes ANDROID_SDK_ROOT is correctly set by the base image (e.g., /opt/android-sdk)
+# Explicitly accept Android SDK licenses
 RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "8933cc44-9fd0-4702-95cc-ac721bdc4b60" > ${ANDROID_SDK_ROOT}/licenses/android-sdk-license \
     && echo "84831b14-a957-49d0-881b-c19be05963f9" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-preview-license \
@@ -40,14 +49,20 @@ RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "336b6d27-4a00-4b13-a9d9-299f0f15c7e0" >> ${ANDROID_SDK_ROOT}/licenses/android-sdk-license-3 \
     && echo "android-googletv-license" > ${ANDROID_SDK_ROOT}/licenses/android-googletv-license
 
-# Install Android SDK components incrementally for better caching and resilience
-RUN sdkmanager "platforms;android-33"
-RUN sdkmanager "system-images;android-33;google_apis;x86_64"
-RUN sdkmanager "emulator"
-RUN sdkmanager "platform-tools"
+# Install Android SDK components (platforms, system images, emulator, platform-tools)
+RUN sdkmanager "platforms;android-33" "system-images;android-33;google_apis;x86_64" "emulator" "platform-tools"
+
+# Create a non-root user for running the emulator and adb (good practice)
+RUN useradd -ms /bin/bash androiduser && echo "androiduser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/androiduser
+USER androiduser
+WORKDIR /home/androiduser/work
 
 # Create an AVD (Android Virtual Device)
-RUN echo "no" | avdmanager create avd --force -n "ironclad_avd" -k "system-images;android-33;google_apis;x86_64"
+RUN echo "no" | avdmanager create avd -n test_avd -k "system-images;android-33;google_apis;x86_64"
+
+# Copy the 1Password APK and test script into the container
+COPY 1Password.apk ./
+COPY test_vulnerability.py ./
 
 # Set the default command to run when the container starts
-CMD ["/usr/bin/python3", "/app/test_vulnerability.py"]
+CMD ["/usr/bin/python3", "/home/androiduser/work/test_vulnerability.py"]
