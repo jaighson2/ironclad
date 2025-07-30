@@ -1,4 +1,4 @@
-# Use a minimal Ubuntu base image for full control
+# Start from the ubuntu:22.04 base image for full control
 FROM ubuntu:22.04
 
 # Set environment variables for Android SDK
@@ -29,8 +29,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies (including mitmproxy)
-# Use --break-system-packages for PEP 668 compliance
-RUN pip install --no-cache-dir --break-system-packages mitmproxy pytest requests
+# ABSOLUTE FIX for pip compatibility: Upgrade pip first, then install requirements with --break-system-packages
+# This ensures pip is a version that understands the --break-system-packages flag.
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install --no-cache-dir --break-system-packages mitmproxy pytest requests
 
 # Download and install Android SDK Command-line Tools
 ARG SDK_TOOLS_VERSION=11076708
@@ -39,6 +41,13 @@ RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-${SD
     && unzip /tmp/commandlinetools-linux.zip -d /tmp/android_extract \
     && mv /tmp/android_extract/cmdline-tools/* ${ANDROID_SDK_ROOT}/cmdline-tools/latest/ \
     && rm -rf /tmp/android_extract /tmp/commandlinetools-linux.zip
+
+# Create symbolic links for mitmproxy executables to be in a standard PATH location
+# This ensures that 'mitmproxy' and 'mitmdump' can be found and executed directly.
+# Using a more robust method to find pip's site-packages and then link the executables.
+RUN PYTHON_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])") && \
+    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmproxy /usr/bin/mitmproxy && \
+    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmdump /usr/bin/mitmdump
 
 # Explicitly accept Android SDK licenses
 RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
