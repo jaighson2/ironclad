@@ -44,7 +44,6 @@ RUN PYTHON_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()
     ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmproxy /usr/bin/mitmproxy && \
     ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmdump /usr/bin/mitmdump
 
-# --- CORRECTED LICENSE ACCEPTANCE BLOCK ---
 # Explicitly accept Android SDK licenses by creating the license files
 RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "8933cc44-9fd0-4702-95cc-ac721bdc4b60" > ${ANDROID_SDK_ROOT}/licenses/android-sdk-license \
@@ -58,4 +57,24 @@ RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "android-googletv-license" > ${ANDROID_SDK_ROOT}/licenses/android-googletv-license
 
 # Install Android SDK components
-RUN sdkmanager "platforms;android-33" "system-images;android-33;google_apis;
+RUN sdkmanager "platforms;android-33" "system-images;android-33;google_apis;x86_64" "emulator" "platform-tools"
+
+# Create a non-root user for running the emulator
+RUN useradd -ms /bin/bash androiduser && echo "androiduser ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/androiduser
+USER androiduser
+WORKDIR /home/androiduser/work
+
+# Create an AVD (Android Virtual Device)
+RUN echo "no" | avdmanager create avd -n test_avd -k "system-images;android-33;google_apis;x86_64"
+
+# Copy all necessary files into the container
+COPY 1Password.apk ./
+COPY test_vulnerability.py ./
+COPY entrypoint.sh ./
+
+# Make the entrypoint script executable
+RUN sudo chmod +x entrypoint.sh
+
+# Set the entrypoint script as the default command
+CMD ["./entrypoint.sh"]
+
