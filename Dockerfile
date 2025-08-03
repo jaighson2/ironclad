@@ -75,6 +75,13 @@ RUN echo "no" | avdmanager create avd -n test_avd -k "system-images;android-33;g
 # Copy the 1Password APK and test script into the container
 COPY 1Password.apk ./
 COPY test_vulnerability.py ./
+# Copy the 1Password APK, test script, and entrypoint script
+COPY 1Password.apk ./
+COPY test_vulnerability.py ./
+COPY entrypoint.sh ./
 
-# Set the default command to run when the container starts
-CMD ["/usr/bin/python3", "/home/androiduser/work/test_vulnerability.py"]
+# Make the entrypoint script executable
+RUN sudo chmod +x entrypoint.sh
+
+# Set the entrypoint script as the default command
+CMD ["./entrypoint.sh"]
