@@ -1,3 +1,50 @@
+# Start from the ubuntu:22.04 base image for full control
+FROM ubuntu:22.04
+
+# Set environment variables for Android SDK
+ENV ANDROID_SDK_ROOT="/opt/android-sdk"
+ENV PATH="$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/emulator"
+
+# Set DEBIAN_FRONTEND to noninteractive to prevent all interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install core system dependencies, Java, Python, and other tools
+RUN apt-get update && apt-get install -y \
+    openjdk-17-jre \
+    wget \
+    unzip \
+    curl \
+    sudo \
+    python3 \
+    python3-pip \
+    python3-full \
+    git \
+    iproute2 \
+    net-tools \
+    libstdc++6 \
+    libncurses5 \
+    libusb-1.0-0 \
+    qemu-kvm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install --no-cache-dir --break-system-packages mitmproxy pytest requests
+
+# Download and install Android SDK Command-line Tools
+ARG SDK_TOOLS_VERSION=11076708
+RUN wget -q https://dl.google.com/android/repository/commandlinetools-linux-${SDK_TOOLS_VERSION}_latest.zip -O /tmp/commandlinetools-linux.zip \
+    && mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools/latest \
+    && unzip /tmp/commandlinetools-linux.zip -d /tmp/android_extract \
+    && mv /tmp/android_extract/cmdline-tools/* ${ANDROID_SDK_ROOT}/cmdline-tools/latest/ \
+    && rm -rf /tmp/android_extract /tmp/commandlinetools-linux.zip
+
+# Create symbolic links for mitmproxy so it's in the system PATH
+RUN PYTHON_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])") && \
+    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmproxy /usr/bin/mitmproxy && \
+    ln -s ${PYTHON_SITE_PACKAGES}/mitmproxy/mitmdump /usr/bin/mitmdump
+
+# --- CORRECTED LICENSE ACCEPTANCE BLOCK ---
 # Explicitly accept Android SDK licenses by creating the license files
 RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "8933cc44-9fd0-4702-95cc-ac721bdc4b60" > ${ANDROID_SDK_ROOT}/licenses/android-sdk-license \
@@ -11,4 +58,4 @@ RUN mkdir -p ${ANDROID_SDK_ROOT}/licenses \
     && echo "android-googletv-license" > ${ANDROID_SDK_ROOT}/licenses/android-googletv-license
 
 # Install Android SDK components
-RUN sdkmanager "platforms;android-33" "system-images;android-33;google_apis;x86_64" "emulator" "platform-tools"
+RUN sdkmanager "platforms;android-33" "system-images;android-33;google_apis;
